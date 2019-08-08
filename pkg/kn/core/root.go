@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/knative/client/pkg/kn/commands"
+	"github.com/knative/client/pkg/kn/commands/importer"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -139,6 +141,7 @@ func NewKnCommand(params ...commands.KnParams) *cobra.Command {
 	rootCmd.AddCommand(revision.NewRevisionCommand(p))
 	rootCmd.AddCommand(plugin.NewPluginCommand(p))
 	rootCmd.AddCommand(route.NewRouteCommand(p))
+	rootCmd.AddCommand(importer.NewImporterCommand(p))
 	rootCmd.AddCommand(commands.NewCompletionCommand(p))
 	rootCmd.AddCommand(commands.NewVersionCommand(p))
 
