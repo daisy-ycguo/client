@@ -1,28 +1,14 @@
 module knative.dev/client
 
 require (
-	github.com/golang/protobuf v1.3.2 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
-	github.com/google/go-containerregistry v0.0.0-20190723205234-74f764b9c575 // indirect
+	contrib.go.opencensus.io/exporter/prometheus v0.1.0 // indirect
+	contrib.go.opencensus.io/exporter/stackdriver v0.12.5 // indirect
+	github.com/google/go-containerregistry v0.0.0-20190807165608-cad632e202c5 // indirect
 	github.com/google/licenseclassifier v0.0.0-20190711054124-c3068f13fcc3 // indirect
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/knative/client v0.2.0 // indirect
-	github.com/google/btree v1.0.0 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
-	github.com/google/go-containerregistry v0.0.0-20190807165608-cad632e202c5 // indirect
-	github.com/googleapis/gnostic v0.3.0 // indirect
-	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.7 // indirect
-	github.com/knative/build v0.7.0 // indirect
-	github.com/knative/eventing v0.7.1
-	github.com/knative/pkg v0.0.0-20190617142447-13b093adc272
-	github.com/knative/serving v0.6.0
+	github.com/knative/eventing v0.8.0
 	github.com/markbates/inflect v1.0.4 // indirect
-	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.3
@@ -30,11 +16,10 @@ require (
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
-	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 // indirect
+	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.0.0-20190226173710-145d52631d00
@@ -42,6 +27,7 @@ require (
 	k8s.io/cli-runtime v0.0.0-20190325194458-f2b4781c3ae1
 	k8s.io/client-go v0.0.0-20190226174127-78295b709ec6
 	k8s.io/kube-openapi v0.0.0-20190722073852-5e22f3d471e6 // indirect
+	knative.dev/eventing v0.8.0 // indirect
 	knative.dev/pkg v0.0.0-20190815170108-426561fd098d
 	knative.dev/serving v0.8.0
 	knative.dev/test-infra v0.0.0-20190730202142-17f2331e80ad

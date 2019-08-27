@@ -263,13 +263,9 @@ has_flag() {
     echo 'false'
 }
 
-cross_build() {
-  local basedir=$(basedir)
-  local ld_flags="$(build_flags $basedir)"
-  local pkg="github.com/knative/client/pkg/kn/commands"
-  local failed=0
-
-  echo "⚔️ ${S}Compile"
+build_cross() {
+  local ld_flags="$(build_flags $(dirname $0)/..)"
+  local pkg="knative.dev/client/pkg/kn/commands"
 
   export CGO_ENABLED=0
   echo "   🐧 kn-linux-amd64"

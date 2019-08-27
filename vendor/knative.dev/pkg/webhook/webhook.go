@@ -31,11 +31,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/knative/pkg/apis"
-	"github.com/knative/pkg/apis/duck"
-	"github.com/knative/pkg/kmp"
-	"github.com/knative/pkg/logging"
-	"github.com/knative/pkg/logging/logkey"
+	"knative.dev/pkg/apis"
+	"knative.dev/pkg/apis/duck"
+	"knative.dev/pkg/kmp"
+	"knative.dev/pkg/logging"
+	"knative.dev/pkg/logging/logkey"
 
 	"github.com/markbates/inflect"
 	"github.com/mattbaird/jsonpatch"
@@ -99,6 +99,10 @@ type ControllerOptions struct {
 	// TLS Client Authentication.
 	// The default value is tls.NoClientCert.
 	ClientAuth tls.ClientAuthType
+
+	// StatsReporter reports metrics about the webhook.
+	// This will be automatically initialized by the constructor if left uninitialized.
+	StatsReporter StatsReporter
 }
 
 // ResourceCallback defines a signature for resource specific (Route, Configuration, etc.)
@@ -123,16 +127,39 @@ type AdmissionController struct {
 	DisallowUnknownFields bool
 }
 
-func nop(ctx context.Context) context.Context {
-	return ctx
-}
-
 // GenericCRD is the interface definition that allows us to perform the generic
 // CRD actions like deciding whether to increment generation and so forth.
 type GenericCRD interface {
 	apis.Defaultable
 	apis.Validatable
 	runtime.Object
+}
+
+// NewAdmissionController constructs an AdmissionController
+func NewAdmissionController(
+	client kubernetes.Interface,
+	opts ControllerOptions,
+	handlers map[schema.GroupVersionKind]GenericCRD,
+	logger *zap.SugaredLogger,
+	ctx func(context.Context) context.Context,
+	disallowUnknownFields bool) (*AdmissionController, error) {
+
+	if opts.StatsReporter == nil {
+		reporter, err := NewStatsReporter()
+		if err != nil {
+			return nil, err
+		}
+		opts.StatsReporter = reporter
+	}
+
+	return &AdmissionController{
+		Client:                client,
+		Options:               opts,
+		Handlers:              handlers,
+		Logger:                logger,
+		WithContext:           ctx,
+		DisallowUnknownFields: disallowUnknownFields,
+	}, nil
 }
 
 // GetAPIServerExtensionCACert gets the Kubernetes aggregate apiserver
@@ -183,13 +210,15 @@ func getOrGenerateKeyCertsFromSecret(ctx context.Context, client kubernetes.Inte
 			return nil, nil, nil, err
 		}
 		secret, err = client.CoreV1().Secrets(newSecret.Namespace).Create(newSecret)
-		if err != nil && !apierrors.IsAlreadyExists(err) {
-			return nil, nil, nil, err
-		}
-		// Ok, so something else might have created, try fetching it one more time
-		secret, err = client.CoreV1().Secrets(options.Namespace).Get(options.SecretName, metav1.GetOptions{})
 		if err != nil {
-			return nil, nil, nil, err
+			if !apierrors.IsAlreadyExists(err) {
+				return nil, nil, nil, err
+			}
+			// OK, so something else might have created, try fetching it instead.
+			secret, err = client.CoreV1().Secrets(options.Namespace).Get(options.SecretName, metav1.GetOptions{})
+			if err != nil {
+				return nil, nil, nil, err
+			}
 		}
 	}
 
@@ -408,6 +437,7 @@ func (ac *AdmissionController) register(
 // ServeHTTP implements the external admission webhook for mutating
 // serving resources.
 func (ac *AdmissionController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var ttStart = time.Now()
 	logger := ac.Logger
 	logger.Infof("Webhook ServeHTTP request=%#v", r)
 
@@ -451,6 +481,11 @@ func (ac *AdmissionController) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, fmt.Sprintf("could encode response: %v", err), http.StatusInternalServerError)
 		return
+	}
+
+	if ac.Options.StatsReporter != nil {
+		// Only report valid requests
+		ac.Options.StatsReporter.ReportRequest(review.Request, response.Response, time.Since(ttStart))
 	}
 }
 
@@ -550,6 +585,11 @@ func (ac *AdmissionController) mutate(ctx context.Context, req *admissionv1beta1
 		oldObj = oldObj.DeepCopyObject().(GenericCRD)
 		oldObj.SetDefaults(ctx)
 
+		s, ok := oldObj.(apis.HasSpec)
+		if ok {
+			SetUserInfoAnnotations(s, ctx, req.Resource.Group)
+		}
+
 		if req.SubResource == "" {
 			ctx = apis.WithinUpdate(ctx, oldObj)
 		} else {
@@ -568,6 +608,11 @@ func (ac *AdmissionController) mutate(ctx context.Context, req *admissionv1beta1
 		return nil, err
 	}
 
+	if patches, err = ac.setUserInfoAnnotations(ctx, patches, newObj, req.Resource.Group); err != nil {
+		logger.Errorw("Failed the resource user info annotator", zap.Error(err))
+		return nil, err
+	}
+
 	// None of the validators will accept a nil value for newObj.
 	if newObj == nil {
 		return nil, errMissingNewObject
@@ -580,6 +625,26 @@ func (ac *AdmissionController) mutate(ctx context.Context, req *admissionv1beta1
 	}
 
 	return json.Marshal(patches)
+}
+
+func (ac *AdmissionController) setUserInfoAnnotations(ctx context.Context, patches duck.JSONPatch, new GenericCRD, groupName string) (duck.JSONPatch, error) {
+	if new == nil {
+		return patches, nil
+	}
+	nh, ok := new.(apis.HasSpec)
+	if !ok {
+		return patches, nil
+	}
+
+	b, a := new.DeepCopyObject().(apis.HasSpec), nh
+
+	SetUserInfoAnnotations(nh, ctx, groupName)
+
+	patch, err := duck.CreatePatch(b, a)
+	if err != nil {
+		return nil, err
+	}
+	return append(patches, patch...), nil
 }
 
 // roundTripPatch generates the JSONPatch that corresponds to round tripping the given bytes through
