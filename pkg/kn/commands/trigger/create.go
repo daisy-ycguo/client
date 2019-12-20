@@ -67,7 +67,7 @@ func NewTriggerCreateCommand(p *commands.KnParams) *cobra.Command {
 						"because: %s", name, namespace, err)
 			}
 
-			filters, err := triggerUpdateFlags.GetFilters()
+			filters, err := triggerUpdateFlags.Filters.ParseMapOptions()
 			if err != nil {
 				return fmt.Errorf(
 					"cannot create trigger '%s' "+

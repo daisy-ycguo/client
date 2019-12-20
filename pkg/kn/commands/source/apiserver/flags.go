@@ -26,6 +26,7 @@ import (
 	"knative.dev/eventing/pkg/apis/sources/v1alpha1"
 
 	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
+	"knative.dev/client/pkg/kn/commands/flags"
 	hprinters "knative.dev/client/pkg/printers"
 )
 
@@ -37,7 +38,7 @@ const (
 type APIServerSourceUpdateFlags struct {
 	ServiceAccountName string
 	Mode               string
-	Resources          []string
+	Resources          flags.ArrayList
 }
 
 type resourceSpec struct {
@@ -95,9 +96,8 @@ func (f *APIServerSourceUpdateFlags) Add(cmd *cobra.Command) {
 		`The mode the receive adapter controller runs under:,
 "Ref" sends only the reference to the resource,
 "Resource" send the full resource.`)
-	cmd.Flags().StringSliceVar(&f.Resources,
+	cmd.Flags().Var(&f.Resources,
 		"resource",
-		nil,
 		`Specification for which events to listen, in the format Kind:APIVersion:isController, e.g. Deployment:apps/v1:true.
 "isController" can be omitted and is "false" by default.`)
 }

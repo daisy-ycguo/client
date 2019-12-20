@@ -78,7 +78,7 @@ func NewTriggerUpdateCommand(p *commands.KnParams) *cobra.Command {
 					"cannot update trigger '%s' because broker is immutable", name)
 			}
 			if cmd.Flags().Changed("filter") {
-				updated, removed, err := triggerUpdateFlags.GetUpdateFilters()
+				updated, removed, err := triggerUpdateFlags.Filters.ParseUpdateMapOptions()
 				if err != nil {
 					return fmt.Errorf(
 						"cannot update trigger '%s' because %s", name, err)

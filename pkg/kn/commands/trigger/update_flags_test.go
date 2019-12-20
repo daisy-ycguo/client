@@ -18,14 +18,15 @@ import (
 	"testing"
 
 	"gotest.tools/assert"
+	"knative.dev/client/pkg/kn/commands/flags"
 )
 
 func TestGetFilters(t *testing.T) {
 	t.Run("get multiple filters", func(t *testing.T) {
 		createFlag := TriggerUpdateFlags{
-			Filters: filterArray{"type=abc.edf.ghi", "attr=value"},
+			Filters: flags.ArrayList{"type=abc.edf.ghi", "attr=value"},
 		}
-		created, err := createFlag.GetFilters()
+		created, err := createFlag.Filters.ParseMapOptions()
 		wanted := map[string]string{
 			"type": "abc.edf.ghi",
 			"attr": "value",
@@ -36,35 +37,35 @@ func TestGetFilters(t *testing.T) {
 
 	t.Run("get filters with errors", func(t *testing.T) {
 		createFlag := TriggerUpdateFlags{
-			Filters: filterArray{"type"},
+			Filters: flags.ArrayList{"type"},
 		}
-		_, err := createFlag.GetFilters()
+		_, err := createFlag.Filters.ParseMapOptions()
 		assert.ErrorContains(t, err, "invalid filter")
 
 		createFlag = TriggerUpdateFlags{
-			Filters: filterArray{"type="},
+			Filters: flags.ArrayList{"type="},
 		}
-		_, err = createFlag.GetFilters()
+		_, err = createFlag.Filters.ParseMapOptions()
 		assert.ErrorContains(t, err, "invalid filter")
 
 		createFlag = TriggerUpdateFlags{
-			Filters: filterArray{"=value"},
+			Filters: flags.ArrayList{"=value"},
 		}
-		_, err = createFlag.GetFilters()
+		_, err = createFlag.Filters.ParseMapOptions()
 		assert.ErrorContains(t, err, "invalid filter")
 
 		createFlag = TriggerUpdateFlags{
-			Filters: filterArray{"="},
+			Filters: flags.ArrayList{"="},
 		}
-		_, err = createFlag.GetFilters()
+		_, err = createFlag.Filters.ParseMapOptions()
 		assert.ErrorContains(t, err, "invalid filter")
 	})
 
 	t.Run("get duplicate filters", func(t *testing.T) {
 		createFlag := TriggerUpdateFlags{
-			Filters: filterArray{"type=foo", "type=bar"},
+			Filters: flags.ArrayList{"type=foo", "type=bar"},
 		}
-		_, err := createFlag.GetFilters()
+		_, err := createFlag.Filters.ParseMapOptions()
 		assert.ErrorContains(t, err, "duplicate key")
 	})
 }
@@ -72,9 +73,9 @@ func TestGetFilters(t *testing.T) {
 func TestGetUpdateFilters(t *testing.T) {
 	t.Run("get updated filters", func(t *testing.T) {
 		createFlag := TriggerUpdateFlags{
-			Filters: filterArray{"type=abc.edf.ghi", "attr=value"},
+			Filters: flags.ArrayList{"type=abc.edf.ghi", "attr=value"},
 		}
-		updated, removed, err := createFlag.GetUpdateFilters()
+		updated, removed, err := createFlag.Filters.ParseUpdateMapOptions()
 		wanted := map[string]string{
 			"type": "abc.edf.ghi",
 			"attr": "value",
@@ -86,9 +87,9 @@ func TestGetUpdateFilters(t *testing.T) {
 
 	t.Run("get deleted filters", func(t *testing.T) {
 		createFlag := TriggerUpdateFlags{
-			Filters: filterArray{"type-", "attr-"},
+			Filters: flags.ArrayList{"type-", "attr-"},
 		}
-		updated, removed, err := createFlag.GetUpdateFilters()
+		updated, removed, err := createFlag.Filters.ParseUpdateMapOptions()
 		wanted := []string{"type", "attr"}
 		assert.NilError(t, err, "UpdateFilter should be created")
 		assert.DeepEqual(t, wanted, removed)
@@ -97,9 +98,9 @@ func TestGetUpdateFilters(t *testing.T) {
 
 	t.Run("get updated & deleted filters", func(t *testing.T) {
 		createFlag := TriggerUpdateFlags{
-			Filters: filterArray{"type=foo", "attr-", "source=bar", "env-"},
+			Filters: flags.ArrayList{"type=foo", "attr-", "source=bar", "env-"},
 		}
-		updated, removed, err := createFlag.GetUpdateFilters()
+		updated, removed, err := createFlag.Filters.ParseUpdateMapOptions()
 		wantedRemoved := []string{"attr", "env"}
 		wantedUpdated := map[string]string{
 			"type":   "foo",
@@ -112,9 +113,9 @@ func TestGetUpdateFilters(t *testing.T) {
 
 	t.Run("update duplicate filters", func(t *testing.T) {
 		createFlag := TriggerUpdateFlags{
-			Filters: filterArray{"type=foo", "type=bar"},
+			Filters: flags.ArrayList{"type=foo", "type=bar"},
 		}
-		_, _, err := createFlag.GetUpdateFilters()
+		_, _, err := createFlag.Filters.ParseUpdateMapOptions()
 		assert.ErrorContains(t, err, "duplicate key")
 	})
 }
