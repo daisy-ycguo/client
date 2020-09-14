@@ -16,8 +16,10 @@ package flags
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // PodSpecFlags to hold the container resource requirements values
@@ -162,4 +164,17 @@ func (p *PodSpecFlags) AddFlags(flagset *pflag.FlagSet) []string {
 	flagset.Int64VarP(&p.User, "user", "", 0, "The user ID to run the container (e.g., 1001).")
 	flagNames = append(flagNames, "user")
 	return flagNames
+}
+
+func (p *PodSpecFlags) Apply(podspec *corev1.PodSpec) error {
+
+	if podspec==nil {
+		return fmt.Errorf("internal error: cannot apply empty PodSpec")
+	}
+
+	container = podspec. {
+		return nil, fmt.Errorf("internal: no container set in spec.template.spec.containers")
+	}
+	return nil
+
 }
